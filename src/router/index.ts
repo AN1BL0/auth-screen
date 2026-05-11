@@ -55,16 +55,28 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach((to) => {
-    const { isAuthenticated } = useAuth()
+router.beforeEach(async (to) => {
+    const { token, user, fetchMe } = useAuth()
 
-    if (to.meta.requiresAuth && !isAuthenticated.value) {
-        return {
-            name: 'login',
+    if (to.meta.requiresAuth) {
+        if (!token.value) {
+            return {
+                name: 'login',
+            }
+        }
+
+        if (!user.value) {
+            const currentUser = await fetchMe()
+
+            if (!currentUser) {
+                return {
+                    name: 'login',
+                }
+            }
         }
     }
 
-    if (to.meta.guestOnly && isAuthenticated.value) {
+    if (to.meta.guestOnly && token.value) {
         return {
             name: 'dashboard',
         }

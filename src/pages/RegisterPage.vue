@@ -25,6 +25,9 @@ const router = useRouter()
 
 const { register } = useAuth()
 
+const serverError = ref('')
+const isLoading = ref(false)
+
 const form = reactive<RegisterForm>({
   name: '',
   email: '',
@@ -104,20 +107,28 @@ function validateForm(): boolean {
   )
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   const isValid = validateForm()
 
   if (!isValid) return
 
-  const isRegistered = register({
-    name: form.name,
-    email: form.email,
-    password: form.password,
-  })
+  serverError.value = ''
+  isLoading.value = true
 
-  if (!isRegistered) return
+  try {
+    await register({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+    })
 
-  router.push({ name: 'dashboard' })
+    await router.push({ name: 'dashboard' })
+  } catch (error) {
+    serverError.value =
+        error instanceof Error ? error.message : 'Registration failed'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -211,11 +222,18 @@ function handleSubmit() {
           {{ errors.agreement }}
         </p>
 
+        <p
+            v-if="serverError"
+            class="register__server-error"
+        >
+          {{ serverError }}
+        </p>
+
         <BaseButton
             type="submit"
-            :disabled="!isFormFilled"
+            :disabled="!isFormFilled || isLoading"
         >
-          Sign Up
+          {{ isLoading ? 'Creating account...' : 'Sign Up' }}
         </BaseButton>
 
         <BaseButton
@@ -314,6 +332,13 @@ function handleSubmit() {
     &:hover {
       text-decoration: underline;
     }
+  }
+
+  &__server-error {
+    margin: 0;
+    color: #ef4444;
+    font-size: 13px;
+    text-align: center;
   }
 }
 </style>

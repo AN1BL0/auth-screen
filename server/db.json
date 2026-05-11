@@ -1,0 +1,11 @@
+{
+  "users": [
+    {
+      "id": "56cbdde4-2be4-40f3-a249-c1fc48f84bca",
+      "name": "Ilya",
+      "email": "ilya@test.com",
+      "passwordHash": "$2b$10$StvBE37hTfR1iH.aVxxclenSIDXrSHFg72tQ8.xfZ5MQR9oBk8VEC"
+    }
+  ],
+  "sessions": []
+}

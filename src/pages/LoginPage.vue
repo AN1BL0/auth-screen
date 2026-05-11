@@ -59,19 +59,30 @@ function validateForm() {
   return !errors.email && !errors.password
 }
 
-function handleSubmit() {
+const serverError = ref('')
+const isLoading = ref(false)
+
+async function handleSubmit() {
   const isValid = validateForm()
 
   if (!isValid) return
 
-  const isLoggedIn = login({
-    email: form.email,
-    password: form.password,
-  })
+  serverError.value = ''
+  isLoading.value = true
 
-  if (!isLoggedIn) return
+  try {
+    await login({
+      email: form.email,
+      password: form.password,
+    })
 
-  router.push({ name: 'dashboard' })
+    await router.push({ name: 'dashboard' })
+  } catch (error) {
+    serverError.value =
+        error instanceof Error ? error.message : 'Login failed'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -129,11 +140,18 @@ function handleSubmit() {
           </template>
         </BaseField>
 
+        <p
+            v-if="serverError"
+            class="login__server-error"
+        >
+          {{ serverError }}
+        </p>
+
         <BaseButton
             type="submit"
-            :disabled="!isFormFilled"
+            :disabled="!isFormFilled || isLoading"
         >
-          Log In
+          {{ isLoading ? 'Logging in...' : 'Log In' }}
         </BaseButton>
 
         <BaseButton
@@ -258,6 +276,13 @@ function handleSubmit() {
       padding-inline: 12px;
       background-color: #ffffff;
     }
+  }
+
+  &__server-error {
+    margin: 0;
+    color: #ef4444;
+    font-size: 13px;
+    text-align: center;
   }
 }
 </style>

@@ -1,92 +1,112 @@
 import { computed, ref } from 'vue'
+import { apiRequest } from '../api/http'
 
 interface User {
-name: string
-email: string
+    id: string
+    name: string
+    email: string
+}
+
+interface AuthResponse {
+    user: User
+    token: string
+}
+
+interface MeResponse {
+    user: User
 }
 
 interface LoginPayload {
-email: string
-password: string
+    email: string
+    password: string
 }
 
 interface RegisterPayload {
-name: string
-email: string
-password: string
+    name: string
+    email: string
+    password: string
 }
 
-const AUTH_STORAGE_KEY = 'auth-user'
+const TOKEN_STORAGE_KEY = 'auth-token'
 
-function getInitialUser(): User | null {
-const savedUser = localStorage.getItem(AUTH_STORAGE_KEY)
-
-if (!savedUser) {
-return null
-}
-
-try {
-return JSON.parse(savedUser) as User
-} catch {
-localStorage.removeItem(AUTH_STORAGE_KEY)
-return null
-}
-}
-
-const user = ref<User | null>(getInitialUser())
+const token = ref<string | null>(localStorage.getItem(TOKEN_STORAGE_KEY))
+const user = ref<User | null>(null)
 
 const isAuthenticated = computed(() => {
-return Boolean(user.value)
+    return Boolean(token.value)
 })
 
+function setAuthData(authData: AuthResponse) {
+    user.value = authData.user
+    token.value = authData.token
+
+    localStorage.setItem(TOKEN_STORAGE_KEY, authData.token)
+}
+
+function clearAuthData() {
+    user.value = null
+    token.value = null
+
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+}
+
 export function useAuth() {
-function login(payload: LoginPayload): boolean {
-const email = payload.email.trim()
-const password = payload.password.trim()
+    async function register(payload: RegisterPayload) {
+        const authData = await apiRequest<AuthResponse>('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
 
-if (!email || !password) {
-return false
-}
+        setAuthData(authData)
+    }
 
-user.value = {
-name: 'Demo User',
-email,
-}
+    async function login(payload: LoginPayload) {
+        const authData = await apiRequest<AuthResponse>('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        })
 
-localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user.value))
+        setAuthData(authData)
+    }
 
-return true
-}
+    async function fetchMe() {
+        if (!token.value) {
+            return null
+        }
 
-function register(payload: RegisterPayload): boolean {
-const name = payload.name.trim()
-const email = payload.email.trim()
-const password = payload.password.trim()
+        try {
+            const data = await apiRequest<MeResponse>('/auth/me', {
+                token: token.value,
+            })
 
-if (!name || !email || !password) {
-return false
-}
+            user.value = data.user
 
-user.value = {
-name,
-email,
-}
+            return data.user
+        } catch {
+            clearAuthData()
 
-localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user.value))
+            return null
+        }
+    }
 
-return true
-}
+    async function logout() {
+        if (token.value) {
+            await apiRequest<void>('/auth/logout', {
+                method: 'POST',
+                token: token.value,
+            }).catch(() => null)
+        }
 
-function logout() {
-user.value = null
-localStorage.removeItem(AUTH_STORAGE_KEY)
-}
+        clearAuthData()
+    }
 
-return {
-user,
-isAuthenticated,
-login,
-register,
-logout,
-}
+    return {
+        user,
+        token,
+        isAuthenticated,
+        register,
+        login,
+        fetchMe,
+        logout,
+    }
 }
