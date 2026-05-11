@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
@@ -16,6 +17,8 @@ interface LoginErrors {
 }
 
 const router = useRouter()
+
+const { login } = useAuth()
 
 const form = reactive<LoginForm>({
   email: '',
@@ -61,6 +64,13 @@ function handleSubmit() {
 
   if (!isValid) return
 
+  const isLoggedIn = login({
+    email: form.email,
+    password: form.password,
+  })
+
+  if (!isLoggedIn) return
+
   router.push({ name: 'dashboard' })
 }
 </script>
@@ -100,12 +110,12 @@ function handleSubmit() {
             :error="errors.password"
         >
           <template #action>
-            <a
+            <RouterLink
                 class="login__forgot-link"
-                href="#"
+                :to="{ name: 'forgot-password' }"
             >
               Forgot Password?
-            </a>
+            </RouterLink>
           </template>
 
           <template #suffix>
@@ -136,6 +146,16 @@ function handleSubmit() {
         <div class="login__divider">
           <span>or login with SSO</span>
         </div>
+        <p class="login__register">
+          Don’t have an account?
+
+          <RouterLink
+              class="login__register-link"
+              :to="{ name: 'register' }"
+          >
+            Sign Up
+          </RouterLink>
+        </p>
       </form>
     </div>
   </AuthCard>
@@ -213,6 +233,23 @@ function handleSubmit() {
 
     &::after {
       right: 0;
+    }
+
+    &__register {
+      margin: 0;
+      color: #8a94a6;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    &__register-link {
+      color: #ff477e;
+      font-weight: 700;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
     }
 
     span {
